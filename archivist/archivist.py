@@ -638,6 +638,9 @@ class Archivist:  # pylint: disable=too-many-instance-attributes
 
         """
 
+        LOGGER.debug(
+            "list path:%s field:%s params:%s headers:%s", path, field, params, headers
+        )
         while True:
             response = self.__list(
                 path,

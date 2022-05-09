@@ -3,9 +3,9 @@
 Subjects Update Story Runner YAML
 .........................................
 
-'subject_label' is required.
+:code:`subject_label` is required.
 
-'display_name', wallet_pub_keys' and 'tessera_pub_keys' are 
+:code:`display_name`, :code:`wallet_pub_keys` and :code:`tessera_pub_keys` are 
 optional but at least one must be specified.
 
 .. code-block:: yaml

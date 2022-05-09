@@ -54,6 +54,15 @@ For further reading:
    execute
    execute_template
    generic
+   access_policies_count.rst
+   access_policies_count_matching_access_policies.rst
+   access_policies_count_matching_assets.rst
+   access_policies_create.rst
+   access_policies_list.rst
+   access_policies_list_matching_access_policies.rst
+   access_policies_list_matching_assets.rst
+   access_policies_read.rst
+   access_policies_update.rst
    assets_count
    assets_create
    assets_create_if_not_exists
@@ -71,6 +80,7 @@ For further reading:
    subjects_count.rst
    subjects_create.rst
    subjects_create_b64.rst
+   subjects_delete.rst
    subjects_list.rst
    subjects_read.rst
    subjects_update.rst

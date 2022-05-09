@@ -193,7 +193,7 @@ class TestAccessPolicies(TestCase):
 
             access_policy = self.arch.access_policies.update(
                 IDENTITY,
-                PROPS,
+                props=PROPS,
             )
             args, kwargs = mock_patch.call_args
             self.assertEqual(

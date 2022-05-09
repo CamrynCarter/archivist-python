@@ -134,6 +134,7 @@ class _AccessPoliciesClient:
     def update(
         self,
         identity,
+        *,
         props: Optional[Dict] = None,
         filters: Optional[List] = None,
         access_permissions: Optional[List] = None,

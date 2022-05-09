@@ -285,6 +285,8 @@ class _SubjectsClient:
             iterable that returns :class:`Subject` instances
 
         """
+
+        LOGGER.debug("List '%s'", display_name)
         return (
             Subject(**a)
             for a in self._archivist.list(

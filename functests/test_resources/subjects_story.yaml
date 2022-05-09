@@ -53,3 +53,16 @@ steps:
       subject_label: A subject
     wallet_pub_keys:
       - 04c1173bf7844bf1c607b79c18db091b9558ffe581bf132b8cf3b37657230fa321a0880b54a79a88b28bc710ede6dcf3d8272c5210bfd41ea83188e385d12c189c
+
+  - step:
+      action: SUBJECTS_DELETE
+      description: Delete subject
+      print_response: true
+      subject_label: A subject
+
+  - step:
+      action: SUBJECTS_DELETE
+      description: Delete imported subject
+      print_response: true
+      subject_label: An imported subject
+

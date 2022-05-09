@@ -22,7 +22,7 @@ from .errors import ArchivistError, ArchivistInvalidOperationError
 LOGGER = getLogger(__name__)
 
 
-NOUNS = ("asset", "location", "subject")
+NOUNS = ("access_policy", "asset", "location", "subject")
 
 
 def tree():
@@ -45,12 +45,53 @@ class _ActionMap(dict):
     #  use_asset_label = "asset_id"   = keyword argument
     #  use_asset_label = "-asset_id"   = keyword argument in first argumemt that is
     #                                    a dictionary
-    # similarly for location and subjects labels
+    # similarly for access_policy, location and subject labels
     #
     def __init__(self, archivist: "type_helper.Archivist"):
         super().__init__()
 
         # please keep in alphabetical order
+        self["ACCESS_POLICIES_COUNT"] = {
+            "action": archivist.access_policies.count,
+            "keywords": ("display_name",),
+        }
+        self["ACCESS_POLICIES_COUNT_MATCHING_ASSETS"] = {
+            "action": archivist.access_policies.count_matching_assets,
+            "use_access_policy_label": "add_arg_identity",
+        }
+        self["ACCESS_POLICIES_COUNT_MATCHING_ACCESS_POLICIES"] = {
+            "action": archivist.access_policies.count_matching_access_policies,
+            "use_asset_label": "add_arg_identity",
+        }
+        self["ACCESS_POLICIES_CREATE"] = {
+            "action": archivist.access_policies.create_from_data,
+            "delete": archivist.access_policies.delete,
+            "set_access_policy_label": True,
+        }
+        self["ACCESS_POLICIES_LIST"] = {
+            "action": archivist.access_policies.list,
+            "keywords": ("display_name",),
+        }
+        self["ACCESS_POLICIES_LIST_MATCHING_ASSETS"] = {
+            "action": archivist.access_policies.list_matching_assets,
+        }
+        self["ACCESS_POLICIES_LIST_MATCHING_ACCESS_POLICIES"] = {
+            "action": archivist.access_policies.list_matching_access_policies,
+            "use_asset_label": "add_arg_identity",
+        }
+        self["ACCESS_POLICIES_READ"] = {
+            "action": archivist.access_policies.read,
+            "use_access_policy_label": "add_arg_identity",
+        }
+        self["ACCESS_POLICIES_UPDATE"] = {
+            "action": archivist.access_policies.update,
+            "keywords": (
+                "display_name",
+                "filters",
+                "access_permissions",
+            ),
+            "use_access_policy_label": "add_arg_identity",
+        }
         self["ASSETS_ATTACHMENT_INFO"] = {
             "action": archivist.attachments.info,
             "keywords": ("asset_or_event_id",),
@@ -154,15 +195,18 @@ class _ActionMap(dict):
             "keywords": ("display_name",),
         }
         self["SUBJECTS_CREATE"] = {
-            "action": archivist.subjects.create,
+            "action": archivist.subjects.create_from_data,
             "delete": archivist.subjects.delete,
-            "keywords": ("display_name", "wallet_pub_keys", "tessera_pub_keys"),
             "set_subject_label": True,
         }
         self["SUBJECTS_CREATE_FROM_B64"] = {
             "action": archivist.subjects.create_from_b64,
             "delete": archivist.subjects.delete,
             "set_subject_label": True,
+        }
+        self["SUBJECTS_DELETE"] = {
+            "action": archivist.subjects.delete,
+            "use_subject_label": "add_arg_identity",
         }
         self["SUBJECTS_LIST"] = {
             "action": archivist.subjects.list,

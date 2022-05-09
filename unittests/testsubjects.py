@@ -2,6 +2,7 @@
 Test subjects
 """
 
+from os import environ
 from unittest import TestCase, mock
 
 from archivist.archivist import Archivist
@@ -13,9 +14,12 @@ from archivist.constants import (
     SUBJECTS_LABEL,
 )
 from archivist.errors import ArchivistBadRequestError, ArchivistUnconfirmedError
+from archivist.logger import set_logger
 
 from .mock_response import MockResponse
 
+if "TEST_DEBUG" in environ and environ["TEST_DEBUG"]:
+    set_logger(environ["TEST_DEBUG"])
 
 # pylint: disable=missing-docstring
 # pylint: disable=protected-access
@@ -53,8 +57,8 @@ RESPONSE = {
     "identity": IDENTITY,
     "display_name": DISPLAY_NAME,
     "wallet_pub_key": WALLET_PUB_KEYS,
-    "wallet_address": WALLET_ADDRESSES,
     "tessera_pub_key": TESSERA_PUB_KEYS,
+    "wallet_address": WALLET_ADDRESSES,
 }
 RESPONSE_WITH_PENDING = {
     **RESPONSE,
@@ -462,3 +466,319 @@ class TestSubjectsConfirm(TestCase):
                     RESPONSE_WITH_CONFIRMATION,
                     msg="wait_for_confirmation called incorrectly",
                 )
+
+
+class TestSubjectsRunner(TestCase):
+    """
+    Test Archivist Subjects using Runner
+    """
+
+    maxDiff = None
+
+    def setUp(self):
+        self.arch = Archivist("url", "authauthauth", max_time=1)
+
+    @mock.patch("archivist.runner.time_sleep")
+    def test_subjects_create(self, mock_sleep):
+        """
+        Test subject creation
+        """
+        with mock.patch.object(self.arch._session, "post") as mock_post:
+            mock_post.return_value = MockResponse(200, **RESPONSE)
+
+            self.arch.runner(
+                {
+                    "steps": [
+                        {
+                            "step": {
+                                "action": "SUBJECTS_CREATE",
+                                "wait_time": 10,
+                                "description": "Testing runner subjects create",
+                                "subject_label": "Existing Subject",
+                            },
+                            **REQUEST,
+                        },
+                    ],
+                }
+            )
+
+            args, kwargs = mock_post.call_args
+            self.assertEqual(
+                args,
+                (f"url/{ROOT}/{SUBPATH}",),
+                msg="CREATE method args called incorrectly",
+            )
+            self.assertEqual(
+                kwargs,
+                {
+                    "json": REQUEST,
+                    "headers": {
+                        "authorization": "Bearer authauthauth",
+                    },
+                    "verify": True,
+                },
+                msg="CREATE method kwargs called incorrectly",
+            )
+            self.assertEqual(
+                self.arch.runner.entities["Existing Subject"],
+                RESPONSE,
+                msg="Incorrect subject created",
+            )
+            mock_sleep.assert_called_once_with(10)
+
+    @mock.patch("archivist.runner.time_sleep")
+    def test_subjects_create_from_b64(self, mock_sleep):
+        """
+        Test subject creation
+        """
+        with mock.patch.object(self.arch._session, "post") as mock_post:
+            mock_post.return_value = MockResponse(200, **RESPONSE)
+
+            self.arch.runner(
+                {
+                    "steps": [
+                        {
+                            "step": {
+                                "action": "SUBJECTS_CREATE_FROM_B64",
+                                "wait_time": 10,
+                                "description": "Testing runner subjects create",
+                                "subject_label": "Existing Subject",
+                            },
+                            "display_name": DISPLAY_NAME,
+                            "subject_string": SUBJECT_STRING,
+                        },
+                    ],
+                }
+            )
+            args, kwargs = mock_post.call_args
+            self.assertEqual(
+                args,
+                (f"url/{ROOT}/{SUBPATH}",),
+                msg="CREATE method args called incorrectly",
+            )
+            self.assertEqual(
+                kwargs,
+                {
+                    "json": REQUEST,
+                    "headers": {
+                        "authorization": "Bearer authauthauth",
+                    },
+                    "verify": True,
+                },
+                msg="CREATE method kwargs called incorrectly",
+            )
+            self.assertEqual(
+                self.arch.runner.entities["Existing Subject"],
+                RESPONSE,
+                msg="Incorrect subject created",
+            )
+            mock_sleep.assert_called_once_with(10)
+
+    @mock.patch("archivist.runner.time_sleep")
+    def test_subjects_story_read_update_delete(self, mock_sleep):
+        """
+        Test subject reading
+        """
+        with mock.patch.object(
+            self.arch._session, "post"
+        ) as mock_post, mock.patch.object(
+            self.arch._session, "get"
+        ) as mock_get, mock.patch.object(
+            self.arch._session, "patch"
+        ) as mock_patch, mock.patch.object(
+            self.arch._session, "delete"
+        ) as mock_delete:
+            mock_post.return_value = MockResponse(200, **RESPONSE)
+            mock_get.return_value = MockResponse(200, **RESPONSE)
+            mock_patch.return_value = MockResponse(200, **RESPONSE)
+            mock_delete.return_value = MockResponse(200, {})
+
+            self.arch.runner(
+                {
+                    "steps": [
+                        {
+                            "step": {
+                                "action": "SUBJECTS_CREATE_FROM_B64",
+                                "wait_time": 1,
+                                "description": "Testing runner subjects create",
+                                "subject_label": "Existing Subject",
+                            },
+                            "display_name": DISPLAY_NAME,
+                            "subject_string": SUBJECT_STRING,
+                        },
+                        {
+                            "step": {
+                                "action": "SUBJECTS_READ",
+                                "wait_time": 2,
+                                "description": "Testing runner subjects read",
+                                "subject_label": "Existing Subject",
+                            },
+                        },
+                        {
+                            "step": {
+                                "action": "SUBJECTS_UPDATE",
+                                "wait_time": 3,
+                                "description": "Testing runner subjects update",
+                                "subject_label": "Existing Subject",
+                            },
+                            "display_name": DISPLAY_NAME,
+                        },
+                        {
+                            "step": {
+                                "action": "SUBJECTS_DELETE",
+                                "wait_time": 4,
+                                "description": "Testing runner subjects delete`",
+                                "subject_label": "Existing Subject",
+                            },
+                        },
+                    ],
+                }
+            )
+            self.assertEqual(
+                tuple(mock_get.call_args),
+                (
+                    ((f"url/{ROOT}/{SUBJECTS_SUBPATH}/{IDENTITY}"),),
+                    {
+                        "headers": {
+                            "authorization": "Bearer authauthauth",
+                        },
+                        "params": None,
+                        "verify": True,
+                    },
+                ),
+                msg="GET method called incorrectly",
+            )
+            args, kwargs = mock_patch.call_args
+            self.assertEqual(
+                args,
+                (f"url/{ROOT}/{SUBJECTS_SUBPATH}/{IDENTITY}",),
+                msg="PATCH method args called incorrectly",
+            )
+            self.assertEqual(
+                kwargs,
+                {
+                    "json": UPDATE,
+                    "headers": {
+                        "authorization": "Bearer authauthauth",
+                    },
+                    "verify": True,
+                },
+                msg="PATCH method kwargs called incorrectly",
+            )
+            self.assertEqual(
+                tuple(mock_delete.call_args),
+                (
+                    ((f"url/{ROOT}/{SUBJECTS_SUBPATH}/{IDENTITY}"),),
+                    {
+                        "headers": {
+                            "authorization": "Bearer authauthauth",
+                        },
+                        "verify": True,
+                    },
+                ),
+                msg="DELETE method called incorrectly",
+            )
+            self.assertEqual(
+                mock_sleep.call_args_list,
+                [mock.call(1), mock.call(2), mock.call(3), mock.call(4)],
+                msg="Sleep method called incorrectly",
+            )
+
+    @mock.patch("archivist.runner.time_sleep")
+    def test_subjects_story_list_and_count(self, mock_sleep):
+        """
+        Test subject listing
+        """
+        with mock.patch.object(
+            self.arch._session, "post"
+        ) as mock_post, mock.patch.object(self.arch._session, "get") as mock_get:
+            mock_post.return_value = MockResponse(200, **RESPONSE)
+            mock_get.side_effect = [
+                MockResponse(
+                    200,
+                    subjects=[
+                        RESPONSE,
+                    ],
+                ),
+                MockResponse(
+                    200,
+                    headers={HEADERS_TOTAL_COUNT: 1},
+                    subjects=[
+                        RESPONSE,
+                    ],
+                ),
+            ]
+
+            self.arch.runner(
+                {
+                    "steps": [
+                        {
+                            "step": {
+                                "action": "SUBJECTS_CREATE_FROM_B64",
+                                "wait_time": 1,
+                                "description": "Testing runner subjects create",
+                                "subject_label": "Existing Subject",
+                            },
+                            "display_name": DISPLAY_NAME,
+                            "subject_string": SUBJECT_STRING,
+                        },
+                        {
+                            "step": {
+                                "action": "SUBJECTS_LIST",
+                                "wait_time": 2,
+                                "print_response": True,
+                                "description": "Testing runner subjects list",
+                            },
+                            "display_name": DISPLAY_NAME,
+                        },
+                        {
+                            "step": {
+                                "action": "SUBJECTS_COUNT",
+                                "wait_time": 3,
+                                "print_response": True,
+                                "description": "Testing runner subjects count",
+                            },
+                            "display_name": DISPLAY_NAME,
+                        },
+                    ],
+                }
+            )
+            # mock_print.assert_called_once_with(10)
+            self.assertEqual(
+                tuple(mock_get.call_args_list[0]),
+                (
+                    ((f"url/{ROOT}/{SUBPATH}"),),
+                    {
+                        "headers": {
+                            "authorization": "Bearer authauthauth",
+                        },
+                        "params": {"display_name": "Subject display name"},
+                        "verify": True,
+                    },
+                ),
+                msg="GET method called incorrectly",
+            )
+
+            self.assertEqual(
+                tuple(mock_get.call_args_list[1]),
+                (
+                    ((f"url/{ROOT}/{SUBPATH}"),),
+                    {
+                        "headers": {
+                            "authorization": "Bearer authauthauth",
+                            HEADERS_REQUEST_TOTAL_COUNT: "true",
+                        },
+                        "params": {
+                            "display_name": "Subject display name",
+                            "page_size": 1,
+                        },
+                        "verify": True,
+                    },
+                ),
+                msg="GET method called incorrectly",
+            )
+            self.assertEqual(
+                mock_sleep.call_args_list,
+                [mock.call(1), mock.call(2), mock.call(3)],
+                msg="Sleep method called incorrectly",
+            )
