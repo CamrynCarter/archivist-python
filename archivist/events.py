@@ -112,11 +112,25 @@ class _EventsClient:
 
     """
 
+    SUBPATH = ASSETS_SUBPATH
+    WILDCARD = ASSETS_WILDCARD
+    PREFIX = None
+
     def __init__(self, archivist: "type_helper.Archivist"):
         self._archivist = archivist
 
     def __str__(self) -> str:
         return f"EventsClient({self._archivist.url})"
+
+    def __prefix(self, asset_id: str):
+        """Prefixes identity if PREFIX is defined"""
+        if self.PREFIX is None:
+            return asset_id
+
+        if asset_id.startswith(self.PREFIX):
+            return asset_id
+
+        return f"{self.PREFIX}{asset_id}"
 
     def create(
         self,
@@ -205,7 +219,7 @@ class _EventsClient:
 
         event = Event(
             **self._archivist.post(
-                SEP.join((ASSETS_SUBPATH, asset_id, EVENTS_LABEL)),
+                SEP.join((self.SUBPATH, self.__prefix(asset_id), EVENTS_LABEL)),
                 data,
             )
         )
@@ -228,7 +242,7 @@ class _EventsClient:
         """
         confirmer.MAX_TIME = self._archivist.max_time
         # pylint: disable=protected-access
-        return confirmer._wait_for_confirmation(self, identity)
+        return confirmer._wait_for_confirmation(self, self.__prefix(identity))
 
     def read(self, identity: str) -> Event:
         """Read event
@@ -244,8 +258,8 @@ class _EventsClient:
         """
         return Event(
             **self._archivist.get(
-                ASSETS_SUBPATH,
-                identity,
+                self.SUBPATH,
+                self.__prefix(identity),
             )
         )
 
@@ -283,9 +297,9 @@ class _EventsClient:
 
         """
 
-        asset_id = asset_id or ASSETS_WILDCARD
+        asset_id = asset_id or self.WILDCARD
         return self._archivist.count(
-            SEP.join((ASSETS_SUBPATH, asset_id, EVENTS_LABEL)),
+            SEP.join((self.SUBPATH, self.__prefix(asset_id), EVENTS_LABEL)),
             params=self.__params(props, attrs, asset_attrs),
         )
 
@@ -311,7 +325,7 @@ class _EventsClient:
             True if all events are confirmed.
 
         """
-        asset_id = asset_id or ASSETS_WILDCARD
+        asset_id = asset_id or self.WILDCARD
         # check that entities exist
         newprops = deepcopy(props) if props else {}
         newprops.pop(CONFIRMATION_STATUS, None)
@@ -326,7 +340,11 @@ class _EventsClient:
         confirmer.MAX_TIME = self._archivist.max_time
         # pylint: disable=protected-access
         return confirmer._wait_for_confirmed(
-            self, asset_id=asset_id, props=props, attrs=attrs, asset_attrs=asset_attrs
+            self,
+            asset_id=self.__prefix(asset_id),
+            props=props,
+            attrs=attrs,
+            asset_attrs=asset_attrs,
         )
 
     def list(
@@ -353,11 +371,11 @@ class _EventsClient:
             iterable that returns :class:`Event` instances
 
         """
-        asset_id = asset_id or ASSETS_WILDCARD
+        asset_id = asset_id or self.WILDCARD
         return (
             Event(**a)
             for a in self._archivist.list(
-                SEP.join((ASSETS_SUBPATH, asset_id, EVENTS_LABEL)),
+                SEP.join((self.SUBPATH, self.__prefix(asset_id), EVENTS_LABEL)),
                 EVENTS_LABEL,
                 page_size=page_size,
                 params=self.__params(props, attrs, asset_attrs),
@@ -386,10 +404,10 @@ class _EventsClient:
             :class:`Event` instance
 
         """
-        asset_id = asset_id or ASSETS_WILDCARD
+        asset_id = asset_id or self.WILDCARD
         return Event(
             **self._archivist.get_by_signature(
-                SEP.join((ASSETS_SUBPATH, asset_id, EVENTS_LABEL)),
+                SEP.join((self.SUBPATH, self.__prefix(asset_id), EVENTS_LABEL)),
                 EVENTS_LABEL,
                 params=self.__params(props, attrs, asset_attrs),
             )
